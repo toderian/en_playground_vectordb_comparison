@@ -1,0 +1,35 @@
+# Sidecar containers for client-server benchmarks.
+# Start with:  docker compose up -d
+# Stop with:   docker compose down -v
+
+services:
+  chromadb:
+    image: chromadb/chroma:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - chromadb_data:/chroma/chroma
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  milvus:
+    image: milvusdb/milvus:latest
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    environment:
+      ETCD_USE_EMBED: "true"
+      COMMON_STORAGETYPE: local
+    volumes:
+      - milvus_data:/var/lib/milvus
+
+volumes:
+  chromadb_data:
+  qdrant_data:
+  milvus_data:
