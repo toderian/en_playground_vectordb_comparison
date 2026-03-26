@@ -1,0 +1,14 @@
+{
+  "last_updated": "YYYY-MM-DD",
+  "objective": "Replace with the current task objective.",
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Define the first concrete task slice",
+      "status": "todo",
+      "owner_role": "manager",
+      "verification": "Describe how completion will be verified.",
+      "notes": "Keep tasks small, concrete, and independently checkable."
+    }
+  ]
+}
