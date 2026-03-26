@@ -75,7 +75,22 @@ this repo. For full details see each candidate's own
 | Zvec | Alibaba | active (new) | minimal so far |
 | USearch | Unum Cloud | active | standalone |
 
-## Install cheat sheet
+## Install
+
+This project uses [uv](https://docs.astral.sh/uv/). Each candidate is an
+optional dependency group — install only what you need:
+
+```bash
+uv run --extra all benchmark.py          # all candidates
+uv run --extra lancedb benchmark.py      # just LanceDB
+uv run --extra qdrant --extra faiss benchmark.py  # mix and match
+```
+
+Available extras: `baseline`, `lancedb`, `chromadb`, `qdrant`, `faiss`,
+`milvus`, `zvec`, `usearch`, `all`.
+
+<details>
+<summary>Direct pip install (without uv)</summary>
 
 ```bash
 pip install vectordb docarray[hnswlib]   # baseline
@@ -87,3 +102,4 @@ pip install pymilvus                      # Milvus Lite
 pip install zvec                          # Zvec
 pip install usearch                       # USearch
 ```
+</details>

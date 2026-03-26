@@ -34,24 +34,49 @@ of all candidates (PyPI metadata, features, pros/cons).
 
 ## Quick start
 
+Requires [uv](https://docs.astral.sh/uv/) and Python 3.10+.
+
 ```bash
-# 1. Create a virtual environment
-python -m venv .venv && source .venv/bin/activate
+# 1. Install all candidates and run benchmarks
+uv run benchmark.py
 
-# 2. Install dependencies (installs all candidates)
-pip install -r requirements.txt
+# 2. Install only specific candidates
+uv run --extra lancedb --extra faiss benchmark.py --only lancedb faiss
 
-# 3. Run benchmarks (in-process candidates only)
-python benchmark.py
-
-# 4. Run with sidecar candidates too (requires Docker)
+# 3. Run with sidecar candidates too (requires Docker)
 docker compose up -d
-python benchmark.py --sidecar
+uv run benchmark.py --sidecar
 
-# 5. Clean up benchmark data
-python benchmark.py --clean
+# 4. Clean up benchmark data
+uv run benchmark.py --clean
 docker compose down -v
 ```
+
+### Available extras
+
+```bash
+uv run --extra all benchmark.py        # all candidates
+uv run --extra lancedb benchmark.py    # just LanceDB
+uv run --extra chromadb benchmark.py   # just ChromaDB
+uv run --extra qdrant benchmark.py     # just Qdrant
+uv run --extra faiss benchmark.py      # just FAISS
+uv run --extra milvus benchmark.py     # just Milvus
+uv run --extra zvec benchmark.py       # just Zvec
+uv run --extra usearch benchmark.py    # just USearch
+uv run --extra baseline benchmark.py   # current vectordb (Jina)
+```
+
+<details>
+<summary>Alternative: pip / venv</summary>
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[all]"       # all candidates
+# or
+pip install -e ".[lancedb]"   # just one
+python benchmark.py
+```
+</details>
 
 ## Benchmark options
 
@@ -83,7 +108,7 @@ python benchmark.py [OPTIONS]
 .
 ├── README.md               # This file
 ├── CURRENT_USAGE.md        # What edge_node uses today + replacement requirements
-├── requirements.txt        # All dependencies
+├── pyproject.toml          # Dependencies & project config (uv / pip)
 ├── benchmark.py            # Benchmark harness
 ├── docker-compose.yml      # Sidecar containers (Chroma, Qdrant, Milvus)
 └── candidates/
