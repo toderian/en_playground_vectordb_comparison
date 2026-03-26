@@ -20,6 +20,8 @@ README, adapter implementation, and notes.
 | **Qdrant** | in-process, sidecar | [`candidates/qdrant/`](candidates/qdrant/) |
 | **FAISS** | in-process | [`candidates/faiss/`](candidates/faiss/) |
 | **Milvus / Milvus Lite** | in-process, sidecar | [`candidates/milvus/`](candidates/milvus/) |
+| **Zvec** (Alibaba) | in-process | [`candidates/zvec/`](candidates/zvec/) |
+| **USearch** (Unum) | in-process | [`candidates/usearch/`](candidates/usearch/) |
 
 **In-process** = embedded, runs inside the edge node process, no extra
 infrastructure.
@@ -88,7 +90,9 @@ python benchmark.py [OPTIONS]
     ├── chromadb/           # ChromaDB candidate
     ├── qdrant/             # Qdrant candidate
     ├── faiss/              # FAISS candidate
-    └── milvus/             # Milvus / Milvus Lite candidate
+    ├── milvus/             # Milvus / Milvus Lite candidate
+    ├── zvec/               # Zvec (Alibaba Proxima) candidate
+    └── usearch/            # USearch (Unum) candidate
 ```
 
 ## Adding a new candidate

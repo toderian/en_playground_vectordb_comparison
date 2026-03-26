@@ -3,6 +3,10 @@
 | | |
 |---|---|
 | **Package** | [milvus-io/pymilvus](https://github.com/milvus-io/pymilvus) |
+| **PyPI** | [`pymilvus`](https://pypi.org/project/pymilvus/) |
+| **Latest version** | 2.6.10 |
+| **Last release** | 2025-01-10 |
+| **Python** | >=3.8 (classifiers: 3.8–3.13) |
 | **Deployment** | In-process (Milvus Lite) **and** sidecar (full Milvus) |
 | **License** | Apache-2.0 |
 | **Status** | Active, CNCF / LF AI & Data (Zilliz) |

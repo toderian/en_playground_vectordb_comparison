@@ -3,8 +3,12 @@
 | | |
 |---|---|
 | **Package** | [facebookresearch/faiss](https://github.com/facebookresearch/faiss) |
+| **PyPI** | [`faiss-cpu`](https://pypi.org/project/faiss-cpu/) |
+| **Latest version** | 1.13.2 |
+| **Last release** | 2025-08-13 |
+| **Python** | >=3.10, <3.15 (classifiers: 3.10–3.14) |
 | **Deployment** | In-process only |
-| **License** | MIT |
+| **License** | MIT + BSD-3-Clause |
 | **Status** | Active (Meta / Facebook Research) |
 
 ## Overview

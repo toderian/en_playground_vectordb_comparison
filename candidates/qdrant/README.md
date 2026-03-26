@@ -3,6 +3,10 @@
 | | |
 |---|---|
 | **Package** | [qdrant/qdrant](https://github.com/qdrant/qdrant) |
+| **PyPI** | [`qdrant-client`](https://pypi.org/project/qdrant-client/) |
+| **Latest version** | 1.17.1 |
+| **Last release** | 2026-03-13 |
+| **Python** | >=3.10 (classifiers: 3.10–3.14) |
 | **Deployment** | In-process (embedded) **and** sidecar (client-server) |
 | **License** | Apache-2.0 |
 | **Status** | Active, VC-backed (Qdrant Solutions GmbH) |

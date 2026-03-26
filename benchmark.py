@@ -158,6 +158,8 @@ def get_inprocess_candidates() -> list[tuple[str, Callable[[], BaseVectorDB]]]:
     _try("qdrant (embedded)", lambda: __import_qdrant_embedded())
     _try("faiss", lambda: __import_faiss())
     _try("milvus-lite", lambda: __import_milvus_lite())
+    _try("zvec", lambda: __import_zvec())
+    _try("usearch", lambda: __import_usearch())
 
     return candidates
 
@@ -220,6 +222,14 @@ def __import_milvus_sidecar():
     from candidates.milvus import MilvusAdapter
     return MilvusAdapter(workspace=WORKSPACE_ROOT / "milvus_sc", embedding_size=EMBEDDING_SIZE, mode="sidecar", uri="http://localhost:19530")
 
+def __import_zvec():
+    from candidates.zvec import ZvecAdapter
+    return ZvecAdapter(workspace=WORKSPACE_ROOT / "zvec", embedding_size=EMBEDDING_SIZE)
+
+def __import_usearch():
+    from candidates.usearch import USearchAdapter
+    return USearchAdapter(workspace=WORKSPACE_ROOT / "usearch", embedding_size=EMBEDDING_SIZE)
+
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 
@@ -230,6 +240,8 @@ CANDIDATE_ALIASES = {
     "qdrant": "qdrant (embedded)",
     "faiss": "faiss",
     "milvus": "milvus-lite",
+    "zvec": "zvec",
+    "usearch": "usearch",
 }
 
 

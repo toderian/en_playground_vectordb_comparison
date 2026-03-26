@@ -3,10 +3,13 @@
 | | |
 |---|---|
 | **Package** | [jina-ai/vectordb](https://github.com/jina-ai/vectordb) |
-| **Version tested** | 0.0.21 |
+| **PyPI** | [`vectordb`](https://pypi.org/project/vectordb/) |
+| **Latest version** | 0.0.21 |
+| **Last release** | 2024-03-04 |
+| **Python** | >=3.7 (classifiers: 3.8–3.11) |
 | **Deployment** | In-process only |
 | **License** | Apache-2.0 |
-| **Status** | Unmaintained (last release 2023) |
+| **Status** | Unmaintained — repo archived, no release in 2+ years |
 
 ## Why it is here
 

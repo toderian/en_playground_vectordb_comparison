@@ -3,9 +3,13 @@
 | | |
 |---|---|
 | **Package** | [lancedb/lancedb](https://github.com/lancedb/lancedb) |
+| **PyPI** | [`lancedb`](https://pypi.org/project/lancedb/) |
+| **Latest version** | 0.30.1 |
+| **Last release** | 2025-01-14 |
+| **Python** | >=3.10 (classifiers: 3.10–3.13) |
 | **Deployment** | In-process (embedded) |
 | **License** | Apache-2.0 |
-| **Status** | Active, well-funded (LanceDB Inc.) |
+| **Status** | Active, well-funded (LanceDB Inc.) — dev status: Alpha |
 
 ## Overview
 

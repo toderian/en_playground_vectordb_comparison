@@ -3,6 +3,10 @@
 | | |
 |---|---|
 | **Package** | [chroma-core/chroma](https://github.com/chroma-core/chroma) |
+| **PyPI** | [`chromadb`](https://pypi.org/project/chromadb/) |
+| **Latest version** | 1.5.5 |
+| **Last release** | 2024-12-20 |
+| **Python** | >=3.9 |
 | **Deployment** | In-process (embedded) **and** sidecar (client-server) |
 | **License** | Apache-2.0 |
 | **Status** | Active, VC-backed |
