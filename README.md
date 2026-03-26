@@ -29,6 +29,9 @@ infrastructure.
 **Sidecar** = runs as a separate container alongside the edge node, accessed
 via HTTP/gRPC.
 
+See [`candidates/SUMMARY.md`](candidates/SUMMARY.md) for a side-by-side comparison
+of all candidates (PyPI metadata, features, pros/cons).
+
 ## Quick start
 
 ```bash
