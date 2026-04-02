@@ -41,6 +41,10 @@ class VectorDBAdapter(BaseVectorDB):
             embedding: NdArray[size]
             idx: int = -1
 
+        # pydantic v1 needs forward refs resolved explicitly
+        if hasattr(_Doc, "update_forward_refs"):
+            _Doc.update_forward_refs()
+
         return _Doc
 
     # -- lifecycle -------------------------------------------------------------
