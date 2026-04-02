@@ -17,8 +17,9 @@
 10. [Dependency Footprint](#10-dependency-footprint)
 11. [Concurrent Contexts](#11-concurrent-contexts)
 12. [Integration Test Results](#12-integration-test-results)
-13. [Scorecard](#13-scorecard)
-14. [Recommendation](#14-recommendation)
+13. [Edge Node Integration Assessment](#13-edge-node-integration-assessment)
+14. [Scorecard](#14-scorecard)
+15. [Recommendation](#15-recommendation)
 
 ---
 
@@ -377,7 +378,133 @@ All 6 candidates pass all 25 integration tests that reproduce the edge_node work
 
 ---
 
-## 13. Scorecard
+## 13. Edge Node Integration Assessment
+
+### Blast Radius
+
+The current vectordb usage is **isolated to a single file**: `extensions/serving/base/base_doc_emb_serving.py`. No other file in the edge_node repo imports from `vectordb` or `docarray`. This makes replacement straightforward — only one module needs changes.
+
+### Current API Surface in edge_node
+
+The file uses exactly 4 vectordb operations:
+
+```python
+# 1. CREATE — one HNSWVectorDB per context
+self.__dbs[context] = HNSWVectorDB[NaeuralDoc](workspace=path)
+
+# 2. INDEX — batch insert with DocList wrapper
+self.__dbs[context].index(inputs=DocList[NaeuralDoc](lst_docs))
+
+# 3. SEARCH — returns object with .matches and .scores
+search_results = self.__dbs[context].search(
+    inputs=DocList[NaeuralDoc]([query_doc]), limit=k
+)[0]
+matches, scores = search_results.matches, search_results.scores
+
+# 4. COUNT — returns dict with 'num_docs' key
+curr_size = self.__dbs[context].num_docs()['num_docs']
+```
+
+### Integration Patterns That Matter
+
+| Pattern | What edge_node does | Difficulty |
+|---|---|---|
+| **Generic type** | `HNSWVectorDB[NaeuralDoc]` — parameterized type | Not needed by replacements; just pass schema to constructor |
+| **DocList wrapper** | `DocList[NaeuralDoc](docs)` on index/search | Replacements take plain lists/dicts; simpler |
+| **Search return type** | `result.matches` (list of NaeuralDoc with `.text`, `.idx`) + `result.scores` | Must be mapped in adapter |
+| **num_docs return** | `{'num_docs': int}` dict | Adapters return int directly; trivial wrapper |
+| **Workspace path** | `workspace="{models_folder}/vectordb/{model_name}/{context}"` | All candidates support this |
+| **No error handling** | Zero try/except around vectordb calls | Replacement must be stable |
+
+### Changes Required Per Candidate
+
+The integration requires modifying **~20 lines** in `base_doc_emb_serving.py`. There are two approaches:
+
+**Option A: Thin adapter (recommended)** — keep a small adapter class that translates the edge_node API to the candidate's API. This is what each `candidates/*/adapter.py` already does. Drop the adapter into edge_node and change the 4 call sites.
+
+**Option B: Direct replacement** — rewrite the 4 call sites to use the candidate's native API directly. Slightly more lines changed, but no adapter layer to maintain.
+
+### Per-Candidate Integration Assessment
+
+#### FAISS — Easy
+
+```python
+# Before (vectordb)
+self.__dbs[context] = HNSWVectorDB[NaeuralDoc](workspace=path)
+self.__dbs[context].index(inputs=DocList[NaeuralDoc](lst_docs))
+result = self.__dbs[context].search(inputs=DocList[NaeuralDoc]([q]), limit=k)[0]
+count = self.__dbs[context].num_docs()['num_docs']
+
+# After (FAISS via adapter)
+self.__dbs[context] = FAISSAdapter(workspace=path, embedding_size=1024)
+self.__dbs[context].open()
+self.__dbs[context].index(docs)       # plain list of Document objects
+result = self.__dbs[context].search(query_embedding, limit=k)
+count = self.__dbs[context].num_docs()  # returns int directly
+```
+
+- **What works:** All 21 integration tests pass, perfect recall, lowest latency
+- **What needs attention:** Must call `close()` explicitly to persist (or add auto-save to adapter). No native text storage — the adapter manages a sidecar JSON file
+- **Lines to change:** ~20 in base_doc_emb_serving.py + drop in adapter.py (~118 lines)
+- **Risk:** Low. FAISS is battle-tested at Meta scale
+
+#### Milvus Lite — Easy
+
+```python
+# After (Milvus Lite via adapter)
+self.__dbs[context] = MilvusAdapter(workspace=path, embedding_size=1024)
+self.__dbs[context].open()
+self.__dbs[context].index(docs)
+result = self.__dbs[context].search(query_embedding, limit=k)
+count = self.__dbs[context].num_docs()
+```
+
+- **What works:** All tests pass, perfect recall, native text + vector storage, auto-persistence
+- **What needs attention:** Requires `setuptools < 81` (milvus_lite uses deprecated `pkg_resources`). Heavier install (115 MB deps, 16 packages)
+- **Lines to change:** ~20 + adapter.py (~132 lines)
+- **Risk:** Medium. `setuptools` constraint could become a problem if upstream doesn't fix it
+
+#### LanceDB — Easy
+
+- **What works:** All tests pass, perfect recall, auto-persistence, native text storage, zero-config
+- **What needs attention:** 24ms search latency (60x slower than FAISS). 324 MB deps. 2.8s cold start for empty DB
+- **Lines to change:** ~20 + adapter.py
+- **Risk:** Low technically, but performance may be insufficient for latency-sensitive paths
+
+#### ChromaDB — Easy but NOT RECOMMENDED
+
+- **What works:** All integration tests pass at small scale, simple API, large community
+- **What needs attention:** **42% recall at 10K docs** — the search returns wrong results more than half the time. 68 transitive deps (262 MB). 2.2x incremental slowdown
+- **Risk:** High. Recall degradation is a correctness bug for semantic search
+
+#### USearch — Easy but NOT RECOMMENDED
+
+- **What works:** Fastest cold start, smallest memory footprint, sub-ms search at small scale
+- **What needs attention:** **32% recall at 10K docs**. 4.8x incremental indexing slowdown. No text storage, no auto-persistence
+- **Risk:** High. Recall degradation makes it unusable for semantic search at any meaningful scale
+
+#### Qdrant — Easy but slow
+
+- **What works:** All tests pass, perfect recall, dual-mode (embedded + server), rich filtering
+- **What needs attention:** 152 docs/s indexing (56x slower than FAISS). 263ms search at 50K. 1.5s cold start. 490 MB disk at 50K
+- **Risk:** Low technically, but performance is poor for edge hardware
+
+### Summary: Integration Difficulty
+
+| Candidate | Integration Effort | Functional Fit | Performance Fit | Overall |
+|---|---|---|---|---|
+| **FAISS** | Easy (~20 lines + adapter) | Good (adapter handles text/persistence) | Excellent | **Recommended** |
+| **Milvus Lite** | Easy (~20 lines + adapter) | Excellent (native text + persistence) | Good | Runner-up |
+| **LanceDB** | Easy (~20 lines + adapter) | Excellent (native text + persistence) | Acceptable | Alternative |
+| **Qdrant** | Easy (~20 lines + adapter) | Excellent (native text + persistence) | Poor | Not recommended |
+| **ChromaDB** | Easy (~20 lines + adapter) | Good | **Broken recall** | Not recommended |
+| **USearch** | Easy (~20 lines + adapter) | Good (adapter handles text/persistence) | **Broken recall** | Not recommended |
+
+All candidates are equally easy to integrate — the adapter layer is already built and tested. The decision comes down to performance and correctness, not integration difficulty.
+
+---
+
+## 14. Scorecard
 
 Weighted assessment against edge_node requirements. Scale: 1 (poor) to 5 (excellent).
 
@@ -397,7 +524,7 @@ Weighted assessment against edge_node requirements. Scale: 1 (poor) to 5 (excell
 
 ---
 
-## 14. Recommendation
+## 15. Recommendation
 
 ### Primary: FAISS
 
