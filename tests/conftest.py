@@ -122,6 +122,7 @@ ADAPTER_SPECS = [
     ("qdrant", "candidates.qdrant", "QdrantAdapter", {"mode": "in-process"}),
     ("faiss", "candidates.faiss", "FAISSAdapter", {}),
     ("milvus", "candidates.milvus", "MilvusAdapter", {"mode": "in-process"}),
+    ("zvec", "candidates.zvec", "ZvecAdapter", {}),
     ("usearch", "candidates.usearch", "USearchAdapter", {}),
 ]
 
@@ -140,6 +141,7 @@ def _make_adapter(spec, workspace) -> BaseVectorDB:
 _LIB_PROBES = {
     "lancedb": "lancedb",
     "chromadb": "chromadb",
+    "zvec": "zvec",
     "qdrant": "qdrant_client",
     "faiss": "faiss",
     "milvus": "pymilvus",

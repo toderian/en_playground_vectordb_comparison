@@ -402,6 +402,7 @@ def suite_deps(candidate_key: str, **_kw) -> dict:
         "qdrant": ["qdrant-client"],
         "faiss": ["faiss-cpu"],
         "milvus": ["pymilvus"],
+        "zvec": ["zvec"],
         "usearch": ["usearch"],
     }
 

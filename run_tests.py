@@ -14,7 +14,7 @@ import argparse
 import subprocess
 import sys
 
-CANDIDATES = ["lancedb", "chromadb", "qdrant", "faiss", "milvus", "usearch"]
+CANDIDATES = ["lancedb", "chromadb", "qdrant", "faiss", "milvus", "zvec", "usearch"]
 
 
 def run_tests_for(candidate: str, verbose: bool = False) -> tuple[bool, str]:

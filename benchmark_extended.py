@@ -20,7 +20,7 @@ from pathlib import Path
 
 from tabulate import tabulate
 
-CANDIDATES = ["lancedb", "chromadb", "qdrant", "faiss", "milvus", "usearch"]
+CANDIDATES = ["lancedb", "chromadb", "qdrant", "faiss", "milvus", "zvec", "usearch"]
 SUITES = ["memory", "scaling", "incremental", "recall", "coldstart", "deps", "contexts"]
 
 

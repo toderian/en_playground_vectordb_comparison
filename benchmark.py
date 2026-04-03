@@ -42,6 +42,7 @@ CANDIDATES: dict[str, tuple[str, str, list[str]]] = {
     "qdrant":    ("qdrant",   "qdrant",   []),
     "faiss":     ("faiss",    "faiss",    []),
     "milvus":    ("milvus",   "milvus",   []),
+    "zvec":      ("zvec",     "zvec",     []),
     "usearch":   ("usearch",  "usearch",  []),
 }
 

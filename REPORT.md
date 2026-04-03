@@ -1,7 +1,7 @@
 # VectorDB Replacement — Final Comparison Report
 
-> **Date:** 2026-04-02
-> **Context:** Edge Node currently uses `jina-ai/vectordb` (v0.0.21), which is archived and unmaintained since 2023. This report evaluates 6 replacement candidates across performance, accuracy, resource consumption, and ecosystem maturity.
+> **Date:** 2026-04-03
+> **Context:** Edge Node currently uses `jina-ai/vectordb` (v0.0.21), which is archived and unmaintained since 2023. This report evaluates 7 replacement candidates across performance, accuracy, resource consumption, and ecosystem maturity.
 
 ## Table of Contents
 
@@ -83,6 +83,7 @@ This confirms the need for replacement — the current baseline cannot even be i
 | **Qdrant** | `qdrant-client` | 1.17.1 | Apache-2.0 | Qdrant Solutions GmbH (VC-funded) | [qdrant/qdrant-client](https://github.com/qdrant/qdrant-client) |
 | **FAISS** | `faiss-cpu` | 1.13.2 | MIT + BSD-3 | Meta / Facebook Research | [facebookresearch/faiss](https://github.com/facebookresearch/faiss) |
 | **Milvus Lite** | `pymilvus` | 2.6.11 | Apache-2.0 | Zilliz / CNCF / LF AI & Data | [milvus-io/pymilvus](https://github.com/milvus-io/pymilvus) |
+| **Zvec** | `zvec` | 0.2.1 | Apache-2.0 | Alibaba (Proxima engine) | [proximabilin/zvec](https://github.com/proximabilin/zvec) |
 | **USearch** | `usearch` | 2.23.0 | Apache-2.0 | Unum Cloud | [unum-cloud/usearch](https://github.com/unum-cloud/usearch) |
 
 ### Community & Downloads (PyPI, monthly)
@@ -94,9 +95,10 @@ This confirms the need for replacement — the current baseline cannot even be i
 | **Milvus** | ~14,400,000 | ~2,840,000 |
 | **ChromaDB** | ~13,700,000 | ~2,890,000 |
 | **LanceDB** | ~6,200,000 | ~1,540,000 |
+| **Zvec** | N/A (new) | N/A (new) |
 | **USearch** | ~410,000 | ~81,000 |
 
-FAISS dominates in downloads, reflecting its role as the de-facto similarity search library. Qdrant, Milvus, and ChromaDB form a tight cluster at 13-15M/month. USearch is significantly smaller in community adoption.
+FAISS dominates in downloads, reflecting its role as the de-facto similarity search library. Qdrant, Milvus, and ChromaDB form a tight cluster at 13-15M/month. Zvec is too new to have meaningful PyPI stats. USearch is significantly smaller in community adoption.
 
 ### Python Support & Maintenance
 
@@ -107,6 +109,7 @@ FAISS dominates in downloads, reflecting its role as the de-facto similarity sea
 | Milvus | 3.8-3.13 | Yes | 2025-01-10 | Active |
 | ChromaDB | >=3.9 | Yes | 2024-12-20 | Active |
 | LanceDB | 3.10-3.13 | Yes | 2025-01-14 | Alpha |
+| Zvec | 3.10-3.14 | Yes | 2026-03-18 | Alpha |
 | USearch | 3.9-3.13 | Yes | 2026-01-11 | Production/Stable |
 
 ### Deployment Modes
@@ -118,20 +121,23 @@ FAISS dominates in downloads, reflecting its role as the de-facto similarity sea
 | Qdrant | Yes | Yes |
 | FAISS | Yes | No |
 | Milvus Lite | Yes | Yes (full Milvus server) |
+| Zvec | Yes | No |
 | USearch | Yes | No |
 
 ### Feature Comparison
 
-| Feature | LanceDB | ChromaDB | Qdrant | FAISS | Milvus | USearch |
-|---|---|---|---|---|---|---|
-| Text + vector storage | Yes | Yes | Yes | **No** | Yes | **No** |
-| Auto-persistence | Yes | Yes | Yes | **No** | Yes | **No** |
-| ANN index (HNSW) | opt-in | Yes | Yes | Yes | Yes | Yes |
-| Metadata filtering | Yes | Yes | Yes | No | Yes | No |
-| mmap / disk-backed | Yes | No | Yes | No | No | Yes |
-| GPU support | No | No | No | Yes | Yes | No |
+| Feature | LanceDB | ChromaDB | Qdrant | FAISS | Milvus | Zvec | USearch |
+|---|---|---|---|---|---|---|---|
+| Text + vector storage | Yes | Yes | Yes | **No** | Yes | **No** | **No** |
+| Auto-persistence | Yes | Yes | Yes | **No** | Yes | Yes | **No** |
+| ANN index (HNSW) | opt-in | Yes | Yes | Yes | Yes | Yes | Yes |
+| Metadata filtering | Yes | Yes | Yes | No | Yes | Yes | No |
+| mmap / disk-backed | Yes | No | Yes | No | No | Yes | Yes |
+| GPU support | No | No | No | Yes | Yes | No | No |
 
-FAISS and USearch require a sidecar JSON file for text/metadata storage (handled by the adapter layer). Both also require an explicit `save()` call for persistence (also handled by the adapter).
+FAISS, Zvec, and USearch do not natively store text alongside vectors. The adapter layer handles this via a sidecar JSON file (already implemented and tested). FAISS and USearch also require an explicit `save()` call for persistence (handled by the adapter); Zvec auto-persists.
+
+**Note on Zvec's API:** Zvec differs from other candidates in several ways: (1) `create_and_open()` requires the workspace directory to **not exist** — it creates the directory itself; (2) `open()` does not accept a schema — it reads the schema from disk; (3) there is no `count()` method — document count is accessed via `collection.stats.doc_count`; (4) documents are identified by string IDs, not integer keys. These differences are all handled by the adapter layer but represent a less conventional API compared to FAISS or ChromaDB.
 
 ---
 
@@ -181,13 +187,14 @@ FAISS and USearch require a sidecar JSON file for text/metadata storage (handled
 | Candidate | Index (s) | Docs/s | Search avg (ms) | Search p99 (ms) | QPS | Reopen (s) | Persist | Disk (MB) |
 |---|---|---|---|---|---|---|---|---|
 | **FAISS** | 0.12 | 8,552 | **0.71** | 1.21 | **1,418** | 0.004 | Yes | 4.01 |
+| **Zvec** | 0.09 | 11,110 | 1.76 | 6.76 | 570 | 0.015 | Yes | 8.96 |
 | **USearch** | 0.31 | 3,203 | 1.07 | 1.61 | 933 | 0.011 | Yes | 4.16 |
 | **LanceDB** | 0.21 | 4,816 | 24.18 | 75.38 | 41 | 0.004 | Yes | 4.01 |
 | **Milvus Lite** | 0.71 | 1,417 | 4.71 | 18.97 | 212 | 0.002 | Yes | 4.43 |
 | **ChromaDB** | 1.46 | 685 | 8.43 | 15.22 | 119 | 0.012 | Yes | 9.46 |
 | **Qdrant** | 6.59 | 152 | 21.30 | 54.11 | 47 | 0.377 | Yes | 9.64 |
 
-All candidates persist correctly (documents survive close/reopen). FAISS is 2x-60x faster at search than every other candidate.
+All candidates persist correctly (documents survive close/reopen). FAISS is the fastest at search. Zvec has the highest indexing throughput (11K docs/s) and competitive search latency (1.76ms).
 
 ---
 
@@ -199,12 +206,13 @@ All candidates persist correctly (documents survive close/reopen). FAISS is 2x-6
 |---|---|---|---|
 | **USearch** | **10** | **21** | **41** |
 | **FAISS** | 17 | 31 | 65 |
+| **Zvec** | 34 | 21 | 41 |
 | Qdrant | 68 | 59 | 120 |
 | ChromaDB | 81 | 48 | 70 |
 | Milvus Lite | 94 | 1 | 0 |
 | LanceDB | 149 | 6 | 7 |
 
-USearch and FAISS have the smallest memory footprint. Milvus and LanceDB show unusual patterns (high initial allocation, then near-zero delta) suggesting they offload data to disk immediately.
+USearch, FAISS, and Zvec have the smallest memory footprint. Zvec stays consistently lean (34-41 MB) across dataset sizes. Milvus and LanceDB show unusual patterns (high initial allocation, then near-zero delta) suggesting they offload data to disk immediately.
 
 ---
 
@@ -215,13 +223,14 @@ USearch and FAISS have the smallest memory footprint. Milvus and LanceDB show un
 | Candidate | 1K | 5K | 10K | 50K |
 |---|---|---|---|---|
 | **LanceDB** | 13,232 | 12,094 | 14,319 | 9,808 |
+| **Zvec** | 12,079 | 11,505 | 12,362 | 10,386 |
 | **FAISS** | 10,258 | 10,299 | 8,323 | **10,860** |
 | USearch | 5,546 | 1,735 | 1,203 | 736 |
 | Milvus Lite | 1,510 | 1,930 | 2,339 | 2,525 |
 | ChromaDB | 729 | 437 | 389 | 375 |
 | Qdrant | 147 | 146 | 148 | 142 |
 
-FAISS and LanceDB maintain stable throughput at all scales. USearch degrades significantly. Qdrant is consistently slow.
+FAISS, LanceDB, and Zvec maintain stable throughput at all scales (~10-12K docs/s). USearch degrades significantly. Qdrant is consistently slow.
 
 ### Search Latency (ms) — lower is better
 
@@ -229,12 +238,13 @@ FAISS and LanceDB maintain stable throughput at all scales. USearch degrades sig
 |---|---|---|---|---|
 | **FAISS** | 0.5 | 2.1 | 4.0 | 19.3 |
 | **USearch** | 0.7 | 2.4 | 3.4 | **14.2** |
+| **Zvec** | 1.1 | 4.2 | 8.1 | 35.1 |
 | Milvus Lite | 2.8 | 7.6 | 10.9 | 39.4 |
 | ChromaDB | 6.4 | 7.7 | 9.1 | 21.3 |
 | LanceDB | 17.7 | 22.0 | 25.7 | 59.2 |
 | Qdrant | 13.9 | 29.4 | 66.5 | **263.1** |
 
-FAISS uses a flat (brute-force) index, so search scales linearly with doc count. USearch (HNSW) stays competitive. Qdrant degrades dramatically at 50K docs.
+FAISS uses a flat (brute-force) index, so search scales linearly with doc count. USearch and Zvec (both HNSW-based) stay competitive at small scale. Qdrant degrades dramatically at 50K docs.
 
 ### Disk Usage (MB)
 
@@ -243,10 +253,11 @@ FAISS uses a flat (brute-force) index, so search scales linearly with doc count.
 | FAISS | 4 | 20 | 40 | 200 |
 | LanceDB | 4 | 20 | 40 | 201 |
 | Milvus Lite | 4 | 22 | 44 | 220 |
+| Zvec | 13 | 44 | 83 | 397 |
 | ChromaDB | 9 | 29 | 53 | 248 |
 | Qdrant | 10 | 49 | 98 | **490** |
 
-Qdrant uses 2-2.5x more disk than others. FAISS, LanceDB, and Milvus are similar at ~4 MB/1K docs.
+Qdrant and Zvec use the most disk space. FAISS, LanceDB, and Milvus are the most compact at ~4 MB/1K docs.
 
 ---
 
@@ -256,6 +267,7 @@ Qdrant uses 2-2.5x more disk than others. FAISS, LanceDB, and Milvus are similar
 
 | Candidate | Batch 1 (docs/s) | Batch 5 (docs/s) | Slowdown Ratio |
 |---|---|---|---|
+| **Zvec** | 11,776 | 15,976 | **0.7x** (speeds up) |
 | **FAISS** | 12,654 | 11,175 | **1.1x** (stable) |
 | **LanceDB** | 7,568 | 10,927 | 0.7x (speeds up) |
 | Milvus Lite | 1,055 | 1,453 | 0.7x (speeds up) |
@@ -263,7 +275,7 @@ Qdrant uses 2-2.5x more disk than others. FAISS, LanceDB, and Milvus are similar
 | ChromaDB | 894 | 404 | **2.2x** slowdown |
 | **USearch** | 5,768 | 1,207 | **4.8x** slowdown |
 
-FAISS, LanceDB, Milvus, and Qdrant show stable or improving incremental performance. USearch degrades nearly 5x — its HNSW index rebuild cost grows significantly. ChromaDB also degrades noticeably.
+Zvec, FAISS, LanceDB, Milvus, and Qdrant show stable or improving incremental performance. USearch degrades nearly 5x — its HNSW index rebuild cost grows significantly. ChromaDB also degrades noticeably.
 
 ---
 
@@ -277,12 +289,13 @@ FAISS, LanceDB, Milvus, and Qdrant show stable or improving incremental performa
 | **LanceDB** | **1.00** | **1.00** | **1.00** | **1.00** |
 | **Qdrant** | **1.00** | **1.00** | **1.00** | **1.00** |
 | **Milvus Lite** | **1.00** | **1.00** | **1.00** | **1.00** |
+| **Zvec** | **1.00** | **1.00** | **1.00** | **1.00** |
 | ChromaDB | 0.97 | 0.96 | **0.44** | **0.42** |
 | USearch | 0.90 | 0.90 | **0.32** | **0.32** |
 
 **This is the most critical result.**
 
-- **FAISS, LanceDB, Qdrant, and Milvus** achieve perfect recall at all dataset sizes.
+- **FAISS, LanceDB, Qdrant, Milvus, and Zvec** achieve perfect recall at all dataset sizes.
 - **ChromaDB** drops to **42% recall** at 10K docs — meaning it misses more than half of the true nearest neighbors.
 - **USearch** drops to **32% recall** at 10K docs — returning mostly wrong results.
 
@@ -298,12 +311,13 @@ For edge_node's semantic search use case, ChromaDB and USearch are **disqualifie
 |---|---|---|---|
 | **USearch** | **0.04** | **0.04** | 2.7 |
 | **FAISS** | 0.06 | 0.03 | **1.9** |
+| **Zvec** | 0.09 | 0.02 | 11.2 |
 | ChromaDB | 1.40 | 0.01 | 11.9 |
 | Milvus Lite | 1.83 | 0.001 | 7.2 |
 | Qdrant | 1.83 | **1.46** | 38.9 |
 | LanceDB | 2.82 | 0.003 | 24.2 |
 
-FAISS and USearch start in under 100ms. Qdrant is the slowest at cold start, especially with existing data (1.46s to reopen 5K docs).
+FAISS, USearch, and Zvec start in under 100ms. Qdrant is the slowest at cold start, especially with existing data (1.46s to reopen 5K docs).
 
 ---
 
@@ -313,14 +327,15 @@ FAISS and USearch start in under 100ms. Qdrant is the slowest at cold start, esp
 
 | Candidate | Transitive Deps | Deps Size (MB) |
 |---|---|---|
-| **FAISS** | **3** | **135** |
+| **Zvec** | **2** | **119** |
+| **FAISS** | 3 | 135 |
 | **USearch** | 6 | 64 |
 | Qdrant | 8 | 4 |
 | Milvus Lite | 16 | 115 |
 | LanceDB | 19 | 324 |
 | ChromaDB | **68** | **262** |
 
-FAISS has only 3 transitive dependencies (numpy, packaging, setuptools). ChromaDB pulls in 68 packages (including onnxruntime, tokenizers, etc.) totaling 262 MB — a concern for constrained edge hardware.
+Zvec and FAISS have the fewest transitive dependencies (2-3 packages). ChromaDB pulls in 68 packages (including onnxruntime, tokenizers, etc.) totaling 262 MB — a concern for constrained edge hardware.
 
 ---
 
@@ -334,6 +349,7 @@ FAISS has only 3 transitive dependencies (numpy, packaging, setuptools). ChromaD
 |---|---|---|---|---|
 | **USearch** | 8 | 15 | 21 | 43 |
 | **FAISS** | 14 | 12 | 12 | 36 |
+| Zvec | 35 | 21 | 35 | 69 |
 | Qdrant | 67 | 25 | 35 | 65 |
 | ChromaDB | 80 | 68 | 120 | **191** |
 | Milvus Lite | 96 | -1 | 1 | 7 |
@@ -345,18 +361,19 @@ FAISS has only 3 transitive dependencies (numpy, packaging, setuptools). ChromaD
 |---|---|---|
 | **FAISS** | **0.41** | **0.31** |
 | **USearch** | 0.83 | 0.76 |
+| **Zvec** | 0.93 | 0.88 |
 | Milvus Lite | 2.37 | 2.87 |
 | ChromaDB | 7.11 | 6.40 |
 | Qdrant | 7.20 | 8.79 |
 | LanceDB | 15.23 | 16.39 |
 
-FAISS and USearch maintain sub-millisecond search even with 20 concurrent contexts. ChromaDB's memory grows to 191 MB with 20 contexts.
+FAISS, USearch, and Zvec maintain sub-millisecond search even with 20 concurrent contexts. ChromaDB's memory grows to 191 MB with 20 contexts.
 
 ---
 
 ## 12. Integration Test Results
 
-All 6 candidates pass all 25 integration tests that reproduce the edge_node workflow:
+All 7 candidates pass all 25 integration tests that reproduce the edge_node workflow:
 
 | Suite | Tests | Description |
 |---|---|---|
@@ -373,6 +390,7 @@ All 6 candidates pass all 25 integration tests that reproduce the edge_node work
   qdrant               PASS  (21/21 adapter tests)
   faiss                PASS  (21/21 adapter tests)
   milvus               PASS  (21/21 adapter tests)
+  zvec                 PASS  (21/21 adapter tests)
   usearch              PASS  (21/21 adapter tests)
 ```
 
@@ -477,6 +495,13 @@ count = self.__dbs[context].num_docs()
 - **What needs attention:** **42% recall at 10K docs** — the search returns wrong results more than half the time. 68 transitive deps (262 MB). 2.2x incremental slowdown
 - **Risk:** High. Recall degradation is a correctness bug for semantic search
 
+#### Zvec — Easy, promising but young
+
+- **What works:** All 21 tests pass, perfect recall, fast indexing (11K docs/s), competitive search (1.76ms), auto-persistence, only 2 transitive deps
+- **What needs attention:** Very new project (v0.2.x Alpha), small community, no text storage (adapter handles via sidecar JSON). API has quirks: `create_and_open()` requires non-existing directory, `open()` doesn't accept schema, no `count()` method (use `stats.doc_count`), string-only IDs. Disk usage is higher than FAISS (9 MB vs 4 MB at 1K docs)
+- **Lines to change:** ~20 + adapter.py (~120 lines)
+- **Risk:** Medium. Alpha-quality project from Alibaba with minimal community. API may change
+
 #### USearch — Easy but NOT RECOMMENDED
 
 - **What works:** Fastest cold start, smallest memory footprint, sub-ms search at small scale
@@ -494,6 +519,7 @@ count = self.__dbs[context].num_docs()
 | Candidate | Integration Effort | Functional Fit | Performance Fit | Overall |
 |---|---|---|---|---|
 | **FAISS** | Easy (~20 lines + adapter) | Good (adapter handles text/persistence) | Excellent | **Recommended** |
+| **Zvec** | Easy (~20 lines + adapter) | Good (adapter handles text, auto-persist) | Very good | Strong alternative |
 | **Milvus Lite** | Easy (~20 lines + adapter) | Excellent (native text + persistence) | Good | Runner-up |
 | **LanceDB** | Easy (~20 lines + adapter) | Excellent (native text + persistence) | Acceptable | Alternative |
 | **Qdrant** | Easy (~20 lines + adapter) | Excellent (native text + persistence) | Poor | Not recommended |
@@ -508,19 +534,19 @@ All candidates are equally easy to integrate — the adapter layer is already bu
 
 Weighted assessment against edge_node requirements. Scale: 1 (poor) to 5 (excellent).
 
-| Criteria | Weight | FAISS | LanceDB | Milvus | Qdrant | ChromaDB | USearch |
-|---|---|---|---|---|---|---|---|
-| **Search Recall** | 25% | 5 | 5 | 5 | 5 | **1** | **1** |
-| **Search Latency** | 15% | 5 | 2 | 3 | 2 | 3 | 5 |
-| **Index Throughput** | 10% | 5 | 5 | 3 | 1 | 2 | 4 |
-| **Memory Footprint** | 15% | 4 | 3 | 3 | 2 | 2 | 5 |
-| **Dependency Weight** | 10% | 5 | 2 | 3 | 4 | 1 | 4 |
-| **Persistence** | 10% | 4 | 5 | 5 | 5 | 5 | 4 |
-| **Incremental Perf** | 5% | 5 | 5 | 5 | 4 | 3 | 1 |
-| **Cold Start** | 5% | 5 | 2 | 3 | 1 | 3 | 5 |
-| **Community/Maturity** | 5% | 5 | 3 | 4 | 4 | 4 | 2 |
-| | | | | | | | |
-| **Weighted Score** | | **4.70** | **3.55** | **3.70** | **3.20** | **2.15** | **3.30** |
+| Criteria | Weight | FAISS | Zvec | LanceDB | Milvus | Qdrant | ChromaDB | USearch |
+|---|---|---|---|---|---|---|---|---|
+| **Search Recall** | 25% | 5 | 5 | 5 | 5 | 5 | **1** | **1** |
+| **Search Latency** | 15% | 5 | 4 | 2 | 3 | 2 | 3 | 5 |
+| **Index Throughput** | 10% | 5 | 5 | 5 | 3 | 1 | 2 | 4 |
+| **Memory Footprint** | 15% | 4 | 4 | 3 | 3 | 2 | 2 | 5 |
+| **Dependency Weight** | 10% | 5 | 5 | 2 | 3 | 4 | 1 | 4 |
+| **Persistence** | 10% | 4 | 5 | 5 | 5 | 5 | 5 | 4 |
+| **Incremental Perf** | 5% | 5 | 5 | 5 | 5 | 4 | 3 | 1 |
+| **Cold Start** | 5% | 5 | 5 | 2 | 3 | 1 | 3 | 5 |
+| **Community/Maturity** | 5% | 5 | 1 | 3 | 4 | 4 | 4 | 2 |
+| | | | | | | | | |
+| **Weighted Score** | | **4.70** | **4.30** | **3.55** | **3.70** | **3.20** | **2.15** | **3.30** |
 
 ---
 
@@ -543,7 +569,23 @@ Weighted assessment against edge_node requirements. Scale: 1 (poor) to 5 (excell
 - No auto-persistence — the adapter calls `save()` on `close()` (already implemented and tested)
 - Brute-force flat index (IndexFlatIP) — search scales linearly, which is fine for edge_node's typical dataset sizes (<50K docs) but would need an HNSW index for larger datasets
 
-### Runner-up: Milvus Lite
+### Runner-up: Zvec
+
+Zvec is the strongest alternative, especially given edge_node's constrained hardware focus:
+
+- **Perfect recall** at all scales, fast indexing (11K docs/s), competitive search (1.76ms)
+- **Only 2 transitive deps** (119 MB) — lightest install after FAISS
+- Auto-persistence, fast cold start (92ms), stable incremental indexing
+- **Designed explicitly for edge / on-device RAG** — aligns perfectly with edge_node
+
+**Trade-offs:**
+- Very new project (v0.2.1 Alpha), minimal community, API may change
+- No text storage (adapter handles via sidecar JSON, same as FAISS)
+- Non-standard API quirks (see Section 4 feature comparison notes)
+- Higher disk usage than FAISS (9 MB vs 4 MB per 1K docs)
+- Search latency grows faster at scale (35ms at 50K vs 19ms for FAISS)
+
+### Also considered: Milvus Lite
 
 If a higher-level API with built-in text storage and auto-persistence is preferred:
 
