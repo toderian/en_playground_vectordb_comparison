@@ -12,10 +12,12 @@
 
 | Base Image | Package | Note |
 |---|---|---|
-| **CPU image** | `faiss-cpu>=1.7.4` | ~135 MB installed |
-| **GPU image** | `faiss-gpu>=1.7.4` | Superset of faiss-cpu, adds CUDA kernels |
+| **CPU image** | `faiss-cpu>=1.7.4` | ~135 MB installed (from [faiss-wheels](https://github.com/faiss-wheels/faiss-wheels)) |
+| **GPU image** | `faiss-cpu>=1.7.4` | CPU-only for now; GPU acceleration deferred (see [TODO_faiss_gpu.md](TODO_faiss_gpu.md)) |
 
-`faiss-gpu` includes all CPU functionality — they are mutually exclusive, install one or the other.
+> **Note on GPU package:** The old `faiss-gpu` PyPI package is abandoned (max 1.7.2, Python 3.10).
+> The replacement is `faiss-gpu-cu12` (Meta, latest 1.14.1, Python 3.13 support).
+> Deferred pending CUDA 12.8 compatibility validation.
 
 ### Transitive dependencies
 
